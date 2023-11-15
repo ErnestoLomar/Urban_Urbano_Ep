@@ -38,8 +38,8 @@ try:
         
     def imprimir_boleto_normal_con_servicio(ultimo_folio_de_venta, fecha, hora, idUnidad, servicio, tramo, qr):
         try:
-            nc='0x04c5'
-            ns='0x126e'
+            nc='0x04b8'
+            ns='0x0e28'
 
             n_creador_hex = int(nc, 16)
             n_serie_hex = int(ns, 16)
@@ -90,8 +90,8 @@ try:
         
     def imprimir_boleto_normal_sin_servicio(ultimo_folio_de_venta, fecha, hora, idUnidad, tramo, qr):
         try:
-            nc='0x04c5'
-            ns='0x126e'
+            nc='0x04b8'
+            ns='0x0e28'
 
             n_creador_hex = int(nc, 16)
             n_serie_hex = int(ns, 16)
@@ -141,8 +141,8 @@ try:
 
     def imprimir_boleto_normal_pasaje(folio, fecha, hora, unidad, tipo_pasajero, importe, servicio, tramo):
         try:
-            nc='0x04c5'
-            ns='0x126e'
+            nc='0x04b8'
+            ns='0x0e28'
 
             n_creador_hex = int(nc, 16)
             n_serie_hex = int(ns, 16)
@@ -165,8 +165,8 @@ try:
     
     def imprimir_boleto_con_qr_pasaje(folio, fecha, hora, unidad, tipo_pasajero, importe, servicio, tramo, servicio_o_transbordo):
         try:
-            nc='0x04c5'
-            ns='0x126e'
+            nc='0x04b8'
+            ns='0x0e28'
 
             n_creador_hex = int(nc, 16)
             n_serie_hex = int(ns, 16)
@@ -269,8 +269,8 @@ try:
                     total_de_folio_aforo_efectivo = 0
                 
                 # Creamos la conexión con la impresora térmica.
-                nc='0x04c5'
-                ns='0x126e'
+                nc='0x04b8'
+                ns='0x0e28'
                 n_creador_hex = int(nc, 16)
                 n_serie_hex = int(ns, 16)
                 instancia_impresora = Usb(n_creador_hex, n_serie_hex, 0)
@@ -507,8 +507,8 @@ try:
                     logging.info("Ocurrió algo al hacer la impresión de los tickets de liquidación")
             else:
                 # Creamos la conexión con la impresora térmica.
-                nc='0x04c5'
-                ns='0x126e'
+                nc='0x04b8'
+                ns='0x0e28'
                 n_creador_hex = int(nc, 16)
                 n_serie_hex = int(ns, 16)
                 instancia_impresora = Usb(n_creador_hex, n_serie_hex, 0)
