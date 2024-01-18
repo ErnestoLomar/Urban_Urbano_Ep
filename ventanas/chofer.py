@@ -8,8 +8,6 @@
 ##########################################
 
 #Librerías externas
-import datetime
-import subprocess
 from PyQt5 import uic
 from PyQt5.QtWidgets import QApplication, QWidget
 from PyQt5.QtCore import Qt, QSettings
@@ -27,6 +25,7 @@ from asignaciones_queries import guardar_auto_asignacion, obtener_ultima_asignac
 from queries import obtener_datos_aforo
 from matrices_tarifarias import obtener_servicio_por_numero_de_servicio_y_origen, obtener_transbordos_por_origen_y_numero_de_servicio
 from servicio_pensiones import obtener_origen_por_numero_de_servicio
+from emergentes import VentanaEmergente
 
 try:
     GPIO.setmode(GPIO.BOARD)
@@ -65,6 +64,17 @@ class VentanaChofer(QWidget):
             self.pension_selec = ""
             self.idUnidad = str(obtener_datos_aforo()[1])
             self.intentos = 1
+            
+            # Obtenemos el nombre del operador y lo mostramos en la pantalla
+            if len(vg.nombre_de_operador_inicio) > 0:
+                self.lbl_name_operador.setText(vg.nombre_de_operador_inicio)
+            else:
+                if len(self.settings.value('nombre_de_operador_inicio')) > 0:
+                    self.lbl_name_operador.setText(self.settings.value('nombre_de_operador_inicio'))
+                else:
+                    self.lbl_name_operador.setText("")
+                    print("No hay nombre de operador")
+            
         except Exception as e:
             print(e)
             logging.info(e)
@@ -136,206 +146,263 @@ class VentanaChofer(QWidget):
             # Si el servicio que se seleccionó esta vació quiere decir que escogieron la primer opción de la pensión, entonces lo buscamos manualmente 
             # si no escogemos el que seleccionaron.
             self.close()
-            fecha_completa = strftime('%Y-%m-%d %H:%M:%S')
-            hora = strftime('%H:%M:%S')
             
-            # Obtenemos la fecha actual de la raspberry
+            folio_asignacion_viaje = vg.folio_asignacion
             
-            # Ejecutar el comando date y obtener la salida
-            #result = subprocess.run(['date', '+%d/%m/%Y'], stdout=subprocess.PIPE)
+            if len(str(folio_asignacion_viaje)) <= 1:
+            
+                fecha_completa = strftime('%Y-%m-%d %H:%M:%S')
+                hora = strftime('%H:%M:%S')
+                
+                # Obtenemos la fecha actual de la raspberry
+                
+                # Ejecutar el comando date y obtener la salida
+                #result = subprocess.run(['date', '+%d/%m/%Y'], stdout=subprocess.PIPE)
 
-            # Decodificar la salida en formato de cadena de caracteres
-            #fecha = datetime.datetime.strptime(str(result.stdout.decode('utf-8').strip()), "%d/%m/%Y").strftime("%d/%m/%Y")
-            
-            fecha_vg = str(vg.fecha_actual).replace('/', '-')
-            
-            print("La fecha actual de la raspberry es: ", fecha_vg)
+                # Decodificar la salida en formato de cadena de caracteres
+                #fecha = datetime.datetime.strptime(str(result.stdout.decode('utf-8').strip()), "%d/%m/%Y").strftime("%d/%m/%Y")
+                
+                fecha_vg = str(vg.fecha_actual).replace('/', '-')
+                
+                print("La fecha actual de la raspberry es: ", fecha_vg)
 
-            if self.pension_selec != "":
-                if self.servicio != "":
-                    origen = obtener_origen_por_numero_de_servicio(int(self.servicio.split(" - ")[0]))
-                    total_de_servicios = obtener_servicio_por_numero_de_servicio_y_origen(int(self.servicio.split(" - ")[0]), str(origen[3]).replace("(", "").replace(")", "").replace(",", "").replace("'", ""))
-                    if len(total_de_servicios) != 0:
-                        # Obtenemos el ultimo folio de auto_asignacion en la base de datos
-                        ultima_asignacion = obtener_ultima_asignacion()
-                        print("La ultima asignacion es: ", ultima_asignacion)
+                if self.pension_selec != "":
+                    if self.servicio != "":
+                        origen = obtener_origen_por_numero_de_servicio(int(self.servicio.split(" - ")[0]))
+                        total_de_servicios = obtener_servicio_por_numero_de_servicio_y_origen(int(self.servicio.split(" - ")[0]), str(origen[3]).replace("(", "").replace(")", "").replace(",", "").replace("'", ""))
                         
-                        self.settings.setValue('servicio', self.servicio)
-                        self.settings.setValue('pension', self.pension_selec)
-                        self.settings.setValue('turno', self.comboBox_turno.currentText())
-                        guardar_auto_asignacion(self.settings.value('csn_chofer'), f"{self.settings.value('servicio')},{self.settings.value('pension')}", fecha_vg, hora)
-                        folio = self.crear_folio()
-                        
-                        # Revisamos que el folio se haya incrementado.
-                        if ultima_asignacion != None:
-                            if ultima_asignacion[1] == folio:
-                                print("Se procederá a aumentar el folio ya que es el mismo que el anterior")
-                                logging.info("Se procederá a aumentar el folio ya que es el mismo que el anterior")
-                                folio = obtener_ultimo_folio_auto_asignacion()['folio'] + 1
-                                modificar_folio_auto_asignacion(folio, ultima_asignacion[0])
-                        print("Folio creado: ", folio)
-                        
-                        while True:
-                            folio_de_viaje = f"{''.join(fecha_completa[:10].split('-'))[3:]}{self.idUnidad}{folio}"
-                            if len(folio_de_viaje) == 12:
-                                vg.servicio = self.servicio
-                                vg.turno = self.comboBox_turno.currentText()
-                                vg.folio_asignacion = folio_de_viaje
-                                self.settings.setValue('folio_de_viaje', folio_de_viaje)
-                                print("Folio de viaje: ", folio_de_viaje)
-                                logging.info(f"Folio de viaje: {folio_de_viaje}")
-                                aniadir_folio_de_viaje_a_auto_asignacion(folio, folio_de_viaje, fecha_vg)
-                                self.rutas = Rutas(self.turno, self.servicio, self.close_signal, self.close_signal_pasaje)
-                                self.rutas.setGeometry(0, 0, 800, 440)
-                                self.rutas.setWindowFlags(Qt.FramelessWindowHint)
-                                self.rutas.show()
-                                break
-                            if self.intentos == 3:
-                                self.intentos = 0
-                                ultimo_folio_de_autoasignacion = str(obtener_ultima_asignacion()[1])
-                                eliminar_auto_asignacion_por_folio(ultimo_folio_de_autoasignacion)
-                                print("No se creo correctamente el folio")
-                                GPIO.output(33, False)
-                                self.servicio = ""
-                                vg.csn_chofer = ""
-                                self.settings.setValue('ventana_actual', "")
-                                self.settings.setValue('csn_chofer', "")
+                        if len(total_de_servicios) != 0:
+                            
+                            # Obtenemos el ultimo folio de auto_asignacion en la base de datos
+                            ultima_asignacion = obtener_ultima_asignacion()
+                            print("La ultima asignacion es: ", ultima_asignacion)
+                            
+                            self.settings.setValue('servicio', self.servicio)
+                            self.settings.setValue('pension', self.pension_selec)
+                            self.settings.setValue('turno', self.comboBox_turno.currentText())
+                            
+                            if len(self.settings.value('csn_chofer')) > 0:
+                                guardar_auto_asignacion(self.settings.value('csn_chofer'), f"{self.settings.value('servicio')},{self.settings.value('pension')}", fecha_vg, hora)
+                            elif len(vg.csn_chofer) > 0:
+                                guardar_auto_asignacion(str(vg.csn_chofer), f"{self.settings.value('servicio')},{self.settings.value('pension')}", fecha_vg, hora)
+                            
+                            folio = self.crear_folio()
+                            
+                            # Revisamos que el folio se haya incrementado.
+                            if ultima_asignacion != None:
+                                if ultima_asignacion[1] == folio:
+                                    print("Se procederá a aumentar el folio ya que es el mismo que el anterior")
+                                    logging.info("Se procederá a aumentar el folio ya que es el mismo que el anterior")
+                                    folio = obtener_ultimo_folio_auto_asignacion()['folio'] + 1
+                                    modificar_folio_auto_asignacion(folio, ultima_asignacion[0])
+                            
+                            print("Folio creado: ", folio)
+                            
+                            while True:
                                 
-                                vg.numero_de_operador_inicio = ""
-                                vg.numero_de_operador_final = ""
-                                vg.nombre_de_operador_inicio = ""
-                                vg.nombre_de_operador_final = ""
-                                self.settings.setValue('numero_de_operador_inicio', "")
-                                self.settings.setValue('numero_de_operador_final', "")
-                                self.settings.setValue('nombre_de_operador_inicio', "")
-                                self.settings.setValue('nombre_de_operador_final', "")
+                                folio_de_viaje = f"{''.join(fecha_completa[:10].split('-'))[3:]}{self.idUnidad}{folio}"
                                 
-                                for i in range(5):
-                                    GPIO.output(12, True)
-                                    time.sleep(0.055)
-                                    GPIO.output(12, False)
-                                    time.sleep(0.055)
-                                break
-                            self.intentos += 1
+                                if len(folio_de_viaje) == 12:
+                                    
+                                    vg.servicio = self.servicio
+                                    vg.turno = self.comboBox_turno.currentText()
+                                    vg.folio_asignacion = folio_de_viaje
+                                    
+                                    self.settings.setValue('folio_de_viaje', folio_de_viaje)
+                                    print("Folio de viaje: ", folio_de_viaje)
+                                    logging.info(f"Folio de viaje: {folio_de_viaje}")
+                                    aniadir_folio_de_viaje_a_auto_asignacion(folio, folio_de_viaje, fecha_vg)
+                                    
+                                    # Verificar que si se haya aniadido el folio de viaje
+                                    
+                                    self.rutas = Rutas(self.turno, self.servicio, self.close_signal, self.close_signal_pasaje)
+                                    self.rutas.setGeometry(0, 0, 800, 440)
+                                    self.rutas.setWindowFlags(Qt.FramelessWindowHint)
+                                    self.rutas.show()
+                                    break
+                                
+                                if self.intentos == 3:
+                                    self.intentos = 0
+                                    ultimo_folio_de_autoasignacion = str(obtener_ultima_asignacion()[1])
+                                    eliminar_auto_asignacion_por_folio(ultimo_folio_de_autoasignacion)
+                                    print("No se creo correctamente el folio")
+                                    GPIO.output(33, False)
+                                    self.servicio = ""
+                                    vg.csn_chofer = ""
+                                    self.settings.setValue('ventana_actual', "")
+                                    self.settings.setValue('csn_chofer', "")
+                                    
+                                    vg.numero_de_operador_inicio = ""
+                                    vg.numero_de_operador_final = ""
+                                    vg.nombre_de_operador_inicio = ""
+                                    vg.nombre_de_operador_final = ""
+                                    self.settings.setValue('numero_de_operador_inicio', "")
+                                    self.settings.setValue('numero_de_operador_final', "")
+                                    self.settings.setValue('nombre_de_operador_inicio', "")
+                                    self.settings.setValue('nombre_de_operador_final', "")
+                                    
+                                    for i in range(5):
+                                        GPIO.output(12, True)
+                                        time.sleep(0.055)
+                                        GPIO.output(12, False)
+                                        time.sleep(0.055)
+                                    break
+                                self.intentos += 1
+                        else:
+                            print("No hay servicios disponibles1")
+                            print("Total de servicios1: ", len(total_de_servicios))
+                            GPIO.output(33, False)
+                            self.servicio = ""
+                            vg.csn_chofer = ""
+                            self.settings.setValue('ventana_actual', "")
+                            self.settings.setValue('csn_chofer', "")
+                            
+                            vg.numero_de_operador_inicio = ""
+                            vg.numero_de_operador_final = ""
+                            vg.nombre_de_operador_inicio = ""
+                            vg.nombre_de_operador_final = ""
+                            self.settings.setValue('numero_de_operador_inicio', "")
+                            self.settings.setValue('numero_de_operador_final', "")
+                            self.settings.setValue('nombre_de_operador_inicio', "")
+                            self.settings.setValue('nombre_de_operador_final', "")
+                            
+                            for i in range(5):
+                                GPIO.output(12, True)
+                                time.sleep(0.055)
+                                GPIO.output(12, False)
+                                time.sleep(0.055)
                     else:
-                        print("No hay servicios disponibles1")
-                        print("Total de servicios1: ", len(total_de_servicios))
-                        GPIO.output(33, False)
-                        self.servicio = ""
-                        vg.csn_chofer = ""
-                        self.settings.setValue('ventana_actual', "")
-                        self.settings.setValue('csn_chofer', "")
-                        
-                        vg.numero_de_operador_inicio = ""
-                        vg.numero_de_operador_final = ""
-                        vg.nombre_de_operador_inicio = ""
-                        vg.nombre_de_operador_final = ""
-                        self.settings.setValue('numero_de_operador_inicio', "")
-                        self.settings.setValue('numero_de_operador_final', "")
-                        self.settings.setValue('nombre_de_operador_inicio', "")
-                        self.settings.setValue('nombre_de_operador_final', "")
-                        
-                        for i in range(5):
-                            GPIO.output(12, True)
-                            time.sleep(0.055)
-                            GPIO.output(12, False)
-                            time.sleep(0.055)
+                        origen = obtener_origen_por_numero_de_servicio(int(str(self.comboBox_servicio.currentText()).split(" - ")[0]))
+                        total_de_servicios = obtener_servicio_por_numero_de_servicio_y_origen(int(str(self.comboBox_servicio.currentText()).split(" - ")[0]), str(origen[3]).replace("(", "").replace(")", "").replace(",", "").replace("'", ""))
+                        if len(total_de_servicios) != 0:
+                            vg.servicio = self.comboBox_servicio.currentText()
+                            self.settings.setValue('servicio', self.comboBox_servicio.currentText())
+                            self.settings.setValue('pension', self.pension_selec)
+                            vg.turno = self.comboBox_turno.currentText()
+                            self.settings.setValue('turno', self.comboBox_turno.currentText())
+                            
+                            # Obtenemos el ultimo folio de auto_asignacion en la base de datos
+                            ultima_asignacion = obtener_ultima_asignacion()
+                            print("La ultima asignacion es: ", ultima_asignacion)
+                            
+                            if len(self.settings.value('csn_chofer')) > 0:
+                                guardar_auto_asignacion(self.settings.value('csn_chofer'), f"{self.settings.value('servicio')},{self.settings.value('pension')}", fecha_vg, hora)
+                            elif len(vg.csn_chofer) > 0:
+                                guardar_auto_asignacion(str(vg.csn_chofer), f"{self.settings.value('servicio')},{self.settings.value('pension')}", fecha_vg, hora)
+                                
+                            folio = self.crear_folio()
+                            
+                            # Revisamos que el folio se haya incrementado.
+                            if ultima_asignacion != None:
+                                if ultima_asignacion[1] == folio:
+                                    print("Se procederá a aumentar el folio ya que es el mismo que el anterior")
+                                    logging.info("Se procederá a aumentar el folio ya que es el mismo que el anterior")
+                                    folio = obtener_ultimo_folio_auto_asignacion()['folio'] + 1
+                                    modificar_folio_auto_asignacion(folio, ultima_asignacion[0])
+                            
+                            print("Folio creado: ", folio)
+                            while True:
+                                folio_de_viaje = f"{''.join(fecha_completa[:10].split('-'))[3:]}{self.idUnidad}{folio}"
+                                if len(folio_de_viaje) == 12:
+                                    vg.folio_asignacion = folio_de_viaje
+                                    self.settings.setValue('folio_de_viaje', folio_de_viaje)
+                                    print("Folio de viaje: ", folio_de_viaje)
+                                    logging.info(f"Folio de viaje: {folio_de_viaje}")
+                                    aniadir_folio_de_viaje_a_auto_asignacion(folio, folio_de_viaje, fecha_vg)
+                                    self.rutas = Rutas(self.turno, self.comboBox_servicio.currentText(), self.close_signal, self.close_signal_pasaje)
+                                    self.rutas.setGeometry(0, 0, 800, 440)
+                                    self.rutas.setWindowFlags(Qt.FramelessWindowHint)
+                                    self.rutas.show()
+                                    break
+                                if self.intentos == 3:
+                                    self.intentos = 0
+                                    ultimo_folio_de_autoasignacion = str(obtener_ultima_asignacion()[1])
+                                    eliminar_auto_asignacion_por_folio(ultimo_folio_de_autoasignacion)
+                                    print("No se creo correctamente el folio")
+                                    GPIO.output(33, False)
+                                    self.servicio = ""
+                                    vg.csn_chofer = ""
+                                    self.settings.setValue('ventana_actual', "")
+                                    self.settings.setValue('csn_chofer', "")
+                                    
+                                    vg.numero_de_operador_inicio = ""
+                                    vg.numero_de_operador_final = ""
+                                    vg.nombre_de_operador_inicio = ""
+                                    vg.nombre_de_operador_final = ""
+                                    self.settings.setValue('numero_de_operador_inicio', "")
+                                    self.settings.setValue('numero_de_operador_final', "")
+                                    self.settings.setValue('nombre_de_operador_inicio', "")
+                                    self.settings.setValue('nombre_de_operador_final', "")
+                                    
+                                    for i in range(5):
+                                        GPIO.output(12, True)
+                                        time.sleep(0.055)
+                                        GPIO.output(12, False)
+                                        time.sleep(0.055)
+                                    break
+                                self.intentos += 1
+                        else:
+                            print("No hay servicios disponibles2")
+                            print("Total de servicios2: ", len(total_de_servicios))
+                            GPIO.output(33, False)
+                            self.servicio = ""
+                            vg.csn_chofer = ""
+                            self.settings.setValue('ventana_actual', "")
+                            self.settings.setValue('csn_chofer', "")
+                            
+                            vg.numero_de_operador_inicio = ""
+                            vg.numero_de_operador_final = ""
+                            vg.nombre_de_operador_inicio = ""
+                            vg.nombre_de_operador_final = ""
+                            self.settings.setValue('numero_de_operador_inicio', "")
+                            self.settings.setValue('numero_de_operador_final', "")
+                            self.settings.setValue('nombre_de_operador_inicio', "")
+                            self.settings.setValue('nombre_de_operador_final', "")
+                            
+                            for i in range(5):
+                                GPIO.output(12, True)
+                                time.sleep(0.055)
+                                GPIO.output(12, False)
+                                time.sleep(0.055)
                 else:
-                    origen = obtener_origen_por_numero_de_servicio(int(str(self.comboBox_servicio.currentText()).split(" - ")[0]))
-                    total_de_servicios = obtener_servicio_por_numero_de_servicio_y_origen(int(str(self.comboBox_servicio.currentText()).split(" - ")[0]), str(origen[3]).replace("(", "").replace(")", "").replace(",", "").replace("'", ""))
-                    if len(total_de_servicios) != 0:
-                        vg.servicio = self.comboBox_servicio.currentText()
-                        self.settings.setValue('servicio', self.comboBox_servicio.currentText())
-                        self.settings.setValue('pension', self.pension_selec)
-                        vg.turno = self.comboBox_turno.currentText()
-                        self.settings.setValue('turno', self.comboBox_turno.currentText())
-                        
-                        # Obtenemos el ultimo folio de auto_asignacion en la base de datos
-                        ultima_asignacion = obtener_ultima_asignacion()
-                        print("La ultima asignacion es: ", ultima_asignacion)
-                        
-                        guardar_auto_asignacion(self.settings.value('csn_chofer'), f"{self.settings.value('servicio')},{self.settings.value('pension')}", fecha_vg, hora)
-                        folio = self.crear_folio()
-                        
-                        # Revisamos que el folio se haya incrementado.
-                        if ultima_asignacion != None:
-                            if ultima_asignacion[1] == folio:
-                                print("Se procederá a aumentar el folio ya que es el mismo que el anterior")
-                                logging.info("Se procederá a aumentar el folio ya que es el mismo que el anterior")
-                                folio = obtener_ultimo_folio_auto_asignacion()['folio'] + 1
-                                modificar_folio_auto_asignacion(folio, ultima_asignacion[0])
-                        
-                        print("Folio creado: ", folio)
-                        while True:
-                            folio_de_viaje = f"{''.join(fecha_completa[:10].split('-'))[3:]}{self.idUnidad}{folio}"
-                            if len(folio_de_viaje) == 12:
-                                vg.folio_asignacion = folio_de_viaje
-                                self.settings.setValue('folio_de_viaje', folio_de_viaje)
-                                print("Folio de viaje: ", folio_de_viaje)
-                                logging.info(f"Folio de viaje: {folio_de_viaje}")
-                                aniadir_folio_de_viaje_a_auto_asignacion(folio, folio_de_viaje, fecha_vg)
-                                self.rutas = Rutas(self.turno, self.comboBox_servicio.currentText(), self.close_signal, self.close_signal_pasaje)
-                                self.rutas.setGeometry(0, 0, 800, 440)
-                                self.rutas.setWindowFlags(Qt.FramelessWindowHint)
-                                self.rutas.show()
-                                break
-                            if self.intentos == 3:
-                                self.intentos = 0
-                                ultimo_folio_de_autoasignacion = str(obtener_ultima_asignacion()[1])
-                                eliminar_auto_asignacion_por_folio(ultimo_folio_de_autoasignacion)
-                                print("No se creo correctamente el folio")
-                                GPIO.output(33, False)
-                                self.servicio = ""
-                                vg.csn_chofer = ""
-                                self.settings.setValue('ventana_actual', "")
-                                self.settings.setValue('csn_chofer', "")
-                                
-                                vg.numero_de_operador_inicio = ""
-                                vg.numero_de_operador_final = ""
-                                vg.nombre_de_operador_inicio = ""
-                                vg.nombre_de_operador_final = ""
-                                self.settings.setValue('numero_de_operador_inicio', "")
-                                self.settings.setValue('numero_de_operador_final', "")
-                                self.settings.setValue('nombre_de_operador_inicio', "")
-                                self.settings.setValue('nombre_de_operador_final', "")
-                                
-                                for i in range(5):
-                                    GPIO.output(12, True)
-                                    time.sleep(0.055)
-                                    GPIO.output(12, False)
-                                    time.sleep(0.055)
-                                break
-                            self.intentos += 1
-                    else:
-                        print("No hay servicios disponibles2")
-                        print("Total de servicios2: ", len(total_de_servicios))
-                        GPIO.output(33, False)
-                        self.servicio = ""
-                        vg.csn_chofer = ""
-                        self.settings.setValue('ventana_actual', "")
-                        self.settings.setValue('csn_chofer', "")
-                        
-                        vg.numero_de_operador_inicio = ""
-                        vg.numero_de_operador_final = ""
-                        vg.nombre_de_operador_inicio = ""
-                        vg.nombre_de_operador_final = ""
-                        self.settings.setValue('numero_de_operador_inicio', "")
-                        self.settings.setValue('numero_de_operador_final', "")
-                        self.settings.setValue('nombre_de_operador_inicio', "")
-                        self.settings.setValue('nombre_de_operador_final', "")
-                        
-                        for i in range(5):
-                            GPIO.output(12, True)
-                            time.sleep(0.055)
-                            GPIO.output(12, False)
-                            time.sleep(0.055)
+                    print("No hay pension seleccionada")
+                    self.servicio = ""
+                    vg.csn_chofer = ""
+                    self.settings.setValue('ventana_actual', "")
+                    self.settings.setValue('csn_chofer', "")
+                    
+                    vg.numero_de_operador_inicio = ""
+                    vg.numero_de_operador_final = ""
+                    vg.nombre_de_operador_inicio = ""
+                    vg.nombre_de_operador_final = ""
+                    self.settings.setValue('numero_de_operador_inicio', "")
+                    self.settings.setValue('numero_de_operador_final', "")
+                    self.settings.setValue('nombre_de_operador_inicio', "")
+                    self.settings.setValue('nombre_de_operador_final', "")
+                    
+                    for i in range(5):
+                        GPIO.output(12, True)
+                        time.sleep(0.055)
+                        GPIO.output(12, False)
+                        time.sleep(0.055)
             else:
-                print("No hay pension seleccionada")
+                
+                self.ve = VentanaEmergente("VOID", "Ya existe un viaje", 4.5)
+                self.ve.show()
+                for i in range(5):
+                    GPIO.output(12, True)
+                    time.sleep(0.055)
+                    GPIO.output(12, False)
+                    time.sleep(0.055)
+                
+                print("Ya existe una asignacion de viaje")
+                GPIO.output(33, False)
                 self.servicio = ""
                 vg.csn_chofer = ""
                 self.settings.setValue('ventana_actual', "")
                 self.settings.setValue('csn_chofer', "")
                 
+                vg.folio_asignacion = 0
                 vg.numero_de_operador_inicio = ""
                 vg.numero_de_operador_final = ""
                 vg.nombre_de_operador_inicio = ""
@@ -345,11 +412,6 @@ class VentanaChofer(QWidget):
                 self.settings.setValue('nombre_de_operador_inicio', "")
                 self.settings.setValue('nombre_de_operador_final', "")
                 
-                for i in range(5):
-                    GPIO.output(12, True)
-                    time.sleep(0.055)
-                    GPIO.output(12, False)
-                    time.sleep(0.055)
         except Exception as e:
             print(e)
             
@@ -442,9 +504,3 @@ class VentanaChofer(QWidget):
         except Exception as e:
             print(e)
             logging.info(e)
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    GUI = VentanaChofer()
-    GUI.show()
-    sys.exit(app.exec())

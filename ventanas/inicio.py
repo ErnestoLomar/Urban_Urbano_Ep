@@ -97,6 +97,7 @@ class Ventana(QWidget):
             self.label_num_ver.setText(respuesta['state_num_version'])
 
             self.inicializar()
+            
             try:
                 from rpi_backlight import Backlight
                 self.backlight = Backlight()
@@ -109,9 +110,9 @@ class Ventana(QWidget):
             #Creamos instancias de ventanas
             
             #Creamos los hilos
-            self.runLeerMinicom()
-            self.runLeerTarjeta()   
-            self.runActualizarIconos()
+            self.runLeerMinicom() #Hilo para leer minicom
+            self.runLeerTarjeta() #Hilo para leer tarjeta
+            self.runActualizarIconos() #Hilo para actualizar iconos
             #self.runDeteccionGeocercas()
         except Exception as e:
             logging.info("Error al iniciar la ventana principal: " + str(e))

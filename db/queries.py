@@ -136,11 +136,16 @@ def insertar_temp(idMuestreo, fechaElegida, horaElegida, origenFechaHora, errorT
     
 def insertar_estadisticas_boletera(unidad, fecha, hora, columna, valor):
     # BD temp
-    con = sqlite3.connect(URI, check_same_thread=False)
-    cur = con.cursor()
-    cur.execute("INSERT INTO estadisticas(idUnidad, fecha, hora, columna_db, valor_columna) VALUES (?, ?, ?, ?, ?)", (unidad, fecha, hora, columna, valor))
-    con.commit()
-    con.close()
+    try:
+        con = sqlite3.connect(URI, check_same_thread=False)
+        cur = con.cursor()
+        cur.execute("INSERT INTO estadisticas(idUnidad, fecha, hora, columna_db, valor_columna) VALUES (?, ?, ?, ?, ?)", (unidad, fecha, hora, columna, valor))
+        con.commit()
+        con.close()
+        return True
+    except Exception as e:
+        print(e)
+        return False
 
 def insertar_tablilla(num_tablilla, socket):
     # BD temp
@@ -194,6 +199,65 @@ def actualizar_estado_estadistica_check_servidor(estado, id):
         cur.execute("UPDATE estadisticas SET check_servidor = ? WHERE idMuestreo = ?", (estado,id))
         con.commit()
         con.close()
+        return True
+    except Exception as e:
+        print(e)
+        return False
+    
+def actualizar_socket(socket):
+    try:
+        con = sqlite3.connect(URI,check_same_thread=False)
+        cur = con.cursor()
+        cur.execute("UPDATE parametros SET puertoSocket = ? WHERE idTransportista = 1", (socket,))
+        con.commit()
+        con.close()
+        return True
+    except Exception as e:
+        print(e)
+        return False
+    
+def obtener_ultima_ACT():
+    try:
+        conexion = sqlite3.connect(URI,check_same_thread=False)
+        cursor = conexion.cursor()
+        cursor.execute("SELECT * FROM estadisticas WHERE columna_db = 'ACT' ORDER BY idMuestreo DESC LIMIT 1")
+        resultado = cursor.fetchall()
+        conexion.close()
+        return resultado
+    except Exception as e:
+        print("Fallo al obtener ultima estadistica ACT: " + str(e))
+        
+def eliminar_todas_las_estadisticas_ACT_no_hechas():
+    try:
+        conexion = sqlite3.connect(URI)
+        cursor = conexion.cursor()
+        cursor.execute("DELETE FROM estadisticas WHERE columna_db = 'ACT' AND check_servidor = 'NO'")
+        conexion.commit()
+        conexion.close()
+        return True
+    except Exception as e:
+        print("Fallo al eliminar estadisticas ACT: " + str(e))
+        return False
+    
+def seleccionar_estadistias_antiguas():
+    try:
+        conexion = sqlite3.connect(URI,check_same_thread=False)
+        cursor = conexion.cursor()
+        cursor.execute(f"SELECT idMuestreo, fecha FROM estadisticas")
+        resultado = cursor.fetchall()
+        conexion.close()
+        return resultado
+    except Exception as e:
+        print(e)
+        return False
+    
+def eliminar_estadisticas_antiguas(id):
+    try:
+        conexion = sqlite3.connect(URI)
+        cursor = conexion.cursor()
+        cursor.execute(f"DELETE FROM estadisticas WHERE idMuestreo == {id}")
+        conexion.commit()
+        conexion.close()
         return True
     except Exception as e:
         print(e)

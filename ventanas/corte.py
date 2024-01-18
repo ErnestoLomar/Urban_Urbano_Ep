@@ -23,7 +23,7 @@ from variables_globales import VentanaActual
 from enviar_vuelta import EnviarVuelta
 from queries import obtener_datos_aforo
 from asignaciones_queries import guardar_estado_del_viaje
-from ventas_queries import obtener_ultimo_folio_de_item_venta, obtener_total_de_ventas_por_folioviaje_y_fecha
+from ventas_queries import obtener_ultimo_folio_de_item_venta, obtener_total_de_ventas_por_folioviaje, obtener_total_de_efectivo_por_folioviaje
 
 try:
     GPIO.setmode(GPIO.BOARD)
@@ -101,6 +101,7 @@ class corte(QWidget):
             csn_init = str(self.settings.value('csn_chofer'))
             self.settings.setValue('respaldo_csn_chofer', csn_init)
             total_de_boletos_db = ""
+            total_aforo_efectivo = 0
             
             if hecho:
                 
@@ -109,9 +110,11 @@ class corte(QWidget):
                 logging.info(f"Ultima venta en la base de datos es: {ultima_venta_bd}")
                 
                 if (len(self.settings.value('folio_de_viaje')) != 0):
-                    total_de_boletos_db = obtener_total_de_ventas_por_folioviaje_y_fecha(self.settings.value('folio_de_viaje'), fecha)
+                    total_de_boletos_db = obtener_total_de_ventas_por_folioviaje(self.settings.value('folio_de_viaje'))
+                    total_aforo_efectivo = obtener_total_de_efectivo_por_folioviaje(self.settings.value('folio_de_viaje'))
                 elif (len(variables_globales.folio_asignacion) != 0):
-                    total_de_boletos_db = obtener_total_de_ventas_por_folioviaje_y_fecha(variables_globales.folio_asignacion, fecha)
+                    total_de_boletos_db = obtener_total_de_ventas_por_folioviaje(variables_globales.folio_asignacion)
+                    total_aforo_efectivo = obtener_total_de_efectivo_por_folioviaje(self.settings.value('folio_de_viaje'))
                     
                 print("El total de boletos en la base de datos es: "+str(len(total_de_boletos_db)))
                 logging.info(f"El total de boletos en la base de datos es: {len(total_de_boletos_db)}")
@@ -127,22 +130,21 @@ class corte(QWidget):
                     if len(total_de_boletos_db) != total_de_folio_aforo_efectivo:
                         print("La cantidad de boletos en la base de datos no coincide con la cantidad de boletos en el aforo.")
                         logging.info(f"La cantidad de boletos en la base de datos no coincide con la cantidad de boletos en el aforo.")
-                        
-                        '''
-                        if len(total_de_boletos_db) != ultima_venta_bd[1]:
-                            print("La cantidad de boletos en la base de datos no coincide con el folio de la ultima venta en la base de datos.")
-                            logging.info(f"La cantidad de boletos en la base de datos no coincide con el folio de la ultima venta en la base de datos.")
-                            total_de_folio_aforo_efectivo = ultima_venta_bd[1]
-                            print("Se ha actualizado el total de boletos en el aforo a: "+str(total_de_folio_aforo_efectivo))
-                            logging.info(f"Se ha actualizado el total de boletos en el aforo a: {total_de_folio_aforo_efectivo}")'''
-                            
                         total_de_folio_aforo_efectivo = len(total_de_boletos_db)
                         print("Se ha actualizado el total de boletos en el aforo a: "+str(total_de_folio_aforo_efectivo))
                         logging.info(f"Se ha actualizado el total de boletos en el aforo a: {total_de_folio_aforo_efectivo}")
+                
                 if self.settings.value('csn_chofer_dos') == "":
-                    guardar_estado_del_viaje(csn_init,f"{self.settings.value('servicio')},{self.settings.value('pension')}", fecha, hora,total_de_folio_aforo_efectivo,0,str(self.settings.value('folio_de_viaje')))
+                    if len(str(self.settings.value('folio_de_viaje'))) > 0:
+                        guardar_estado_del_viaje(csn_init,f"{self.settings.value('servicio')},{self.settings.value('pension')}", fecha, hora,total_de_folio_aforo_efectivo,0, str(int(total_aforo_efectivo)), str(self.settings.value('folio_de_viaje')))
+                    elif len(str(variables_globales.folio_asignacion)) > 0:
+                        guardar_estado_del_viaje(csn_init,f"{self.settings.value('servicio')},{self.settings.value('pension')}", fecha, hora,total_de_folio_aforo_efectivo,0, str(int(total_aforo_efectivo)), str(variables_globales.folio_asignacion))
                 else:
-                    guardar_estado_del_viaje(str(self.settings.value('csn_chofer_dos')),f"{self.settings.value('servicio')},{self.settings.value('pension')}", fecha, hora,total_de_folio_aforo_efectivo,0,str(self.settings.value('folio_de_viaje')))
+                    if len(str(self.settings.value('folio_de_viaje'))) > 0:
+                        guardar_estado_del_viaje(str(self.settings.value('csn_chofer_dos')),f"{self.settings.value('servicio')},{self.settings.value('pension')}", fecha, hora,total_de_folio_aforo_efectivo,0, str(int(total_aforo_efectivo)),str(self.settings.value('folio_de_viaje')))
+                    elif len(str(variables_globales.folio_asignacion)) > 0:
+                        guardar_estado_del_viaje(str(self.settings.value('csn_chofer_dos')),f"{self.settings.value('servicio')},{self.settings.value('pension')}", fecha, hora,total_de_folio_aforo_efectivo,0, str(int(total_aforo_efectivo)),str(variables_globales.folio_asignacion))
+                        
                 self.close_signal.emit()
                 self.close_signal_pasaje.emit()
                 variables_globales.ventana_actual = VentanaActual.CERRAR_TURNO

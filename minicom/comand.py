@@ -21,7 +21,7 @@ import variables_globales
 import subprocess
 import logging
 from PyQt5.QtWidgets import QMessageBox
-from queries import obtener_datos_aforo
+from queries import obtener_datos_aforo, actualizar_socket
 
 #Librerias propias
 #   from asistencia import VentanaAsistencia
@@ -52,6 +52,8 @@ Longitud = ""
 Hora = ""
 Fecha = ""
 Vel = ""
+errores = ['ErIn', 'TrEm', 'ErTr', 'EmEr']
+
 try:
     ser = serial.Serial('/dev/serial0', 115200, timeout=1)
 except Exception as e:
@@ -182,7 +184,7 @@ class Principal_Modem:
             # variables de prueba
             tcp = "\"TCP\""
             # identifica el envio por tcp
-            ip = "\"20.106.77.209\""
+            ip = "\"44.224.205.143\""
             # ip publica o URL del servidor
             #print("qi open")
             # comando at, formato de envio, direciion ip o url, puerto del servidor, puerto por defecto del quectel, parametro de envio por push
@@ -195,6 +197,27 @@ class Principal_Modem:
             ser.readline()
         except Exception as e:
             print("\x1b[1;31;47m"+"comand.py, linea 180: "+str(e)+'\033[0;m')
+            logging.info(e)
+            
+    def cambiar_socket(self, restar=None):
+        try:
+            puerto_socket = obtener_datos_aforo()[2]
+            if restar == None:
+                if puerto_socket >= 8210:
+                    actualizar_socket(8201)
+                    print("\x1b[1;33m"+"Se cambio el socket a: ", "8201")
+                else:
+                    actualizar_socket(int(puerto_socket) + 1)
+                    print("\x1b[1;33m"+"Se cambio el socket a: "+str(int(puerto_socket) + 1))
+            else:
+                if puerto_socket <= 8201:
+                    actualizar_socket(8210)
+                    print("\x1b[1;33m"+"Se cambio el socket a: ", "8210")
+                else:
+                    actualizar_socket(int(puerto_socket) - 1)
+                    print("\x1b[1;33m"+"Se cambio el socket a: "+str(int(puerto_socket) - 1))
+        except Exception as e:
+            print("\x1b[1;31;47m"+"comand.py, cambiar_socket: "+str(e)+'\033[0;m')
             logging.info(e)
             
     def reconectar_gps(self):
@@ -236,44 +259,72 @@ class Principal_Modem:
         try:
             if int(variables_globales.signal) > 2:
                 time.sleep(0.0001)
+                
                 ser.flushInput()
                 ser.flushOutput()
+                
                 byte = len(Trama)
                 comando = "AT+QISEND=0,"+str(byte)+"\r\n"
                 ser.write(comando.encode())
+                
                 i = 0
                 j = 0
+                
                 while True:
                     i = i+1
                     Aux = ser.readline()
-                    resultado = Aux.decode()
-                    if '>' in resultado:
-                        # Mando los datos
-                        time.sleep(0.0001)
-                        ser.flushInput()
-                        ser.flushOutput()
-                        ser.write(Trama.encode())
-                        while True:
-                            Aux = ser.readline()
-                            resultado = Aux.decode()
-                            j = j+1
-                            if 'OK' in resultado:
-                                print("\x1b[1;32m"+"Se envio correctamente el dato con SEND OK")
-                                print("\x1b[1;32m"+str(Aux.decode()))
-                                break
-                            elif 'ERROR' in resultado or 'FAIL' in resultado:
-                                print("\x1b[1;33m"+"La trama no se pudo enviar: "+str(resultado))
-                                return {
-                                    "enviado": False
-                                }
-                        break
-                    elif 'ERROR' in resultado:
-                        print("\x1b[1;33m"+"Error al ejecutar el comando AT+QISEND")
-                        print("\x1b[1;33m"+str(Aux.decode()))
+                    
+                    if "\\x" not in str(Aux):
+                        resultado = Aux.decode()
+                        
+                        if '>' in resultado:
+                            time.sleep(0.0001)
+                            
+                            ser.flushInput()
+                            ser.flushOutput()
+                            
+                            ser.write(Trama.encode())
+                            
+                            while True:
+                                Aux = ser.readline()
+                                
+                                if "\\x" not in str(Aux):
+                                    resultado = Aux.decode()
+                                    
+                                    if 'OK' in resultado:
+                                        print("\x1b[1;32m"+"Se envio correctamente el dato con SEND OK")
+                                        print("\x1b[1;32m"+str(Aux.decode()))
+                                        break
+                                    elif 'ERROR' in resultado or 'FAIL' in resultado:
+                                        print("\x1b[1;33m"+"La trama no se pudo enviar: "+str(resultado))
+                                        return {
+                                            "enviado": False
+                                        }
+                                else:
+                                    print("Existen datos basura en la lectura del serial: ", Aux)
+                                    
+                                if j == 10:
+                                    return {
+                                        "enviado": False
+                                    }
+                                    
+                                j = j+1
+                            break
+                        elif 'ERROR' in resultado or i == 10:
+                            print("\x1b[1;33m"+"Error al ejecutar el comando AT+QISEND")
+                            print("\x1b[1;33m"+str(Aux.decode()))
+                            variables_globales.conexion_servidor = "NO"
+                            return {
+                                "enviado": False
+                            }
+                    elif i == 10:
+                        print("\x1b[1;33m"+"Se recibe basura en el serial, no se envía el dato")
                         variables_globales.conexion_servidor = "NO"
                         return {
                             "enviado": False
                         }
+                    else:
+                        print("Existen datos basura en la lectura del serial: ", Aux)
 
                 if Trama == "quit":
                     #variables_globales.conexion_servidor = "SI"
@@ -289,30 +340,35 @@ class Principal_Modem:
                 i = 0
                 logging.info("Esperando respuesta del servidor...")
                 print("\x1b[1;32m"+"Esperando respuesta del servidor...")
+                
                 while True:
                     Aux = ser.readline()
-                    resultado = Aux.decode()
-                    logging.info(resultado)
-                    print("\x1b[1;32m"+"Leyendo: "+str(resultado))
-                    i = i+1
-                    if 'QIURC:' in resultado or 'RC' in resultado or 'IURC' in resultado or "recv" in resultado:
-                        pass
-                    else:
-                        if Aux != b'\r\n' and Aux != b'':
-                            print("\x1b[1;32m"+"Dato registrado en el servidor")
-                            print("\x1b[1;32m"+"Respondio: "+resultado)
-                            variables_globales.conexion_servidor = "SI"
-                            logging.info("El servidor recibio el dato")
-                            logging.info("El servidor respondio: "+resultado)
-                            return {
-                                "enviado": True,
-                                "accion": resultado
-                            }
+                    if "\\x" not in str(Aux):
+                        resultado = Aux.decode()
+                        logging.info(resultado)
+                        print("\x1b[1;32m"+"Leyendo: "+str(resultado))
+                        if 'QIURC:' in resultado or 'RC' in resultado or 'IURC' in resultado or "recv" in resultado:
+                            pass
+                        else:
+                            if Aux != b'\r\n' and Aux != b'':
+                                if any(error in resultado for error in errores):
+                                    return {"enviado": False}
+                                elif "SKT" in resultado:
+                                    print("\x1b[1;32m"+"Dato registrado en el servidor")
+                                    print("\x1b[1;32m"+"Respondio: "+resultado)
+                                    variables_globales.conexion_servidor = "SI"
+                                    logging.info("El servidor recibio el dato")
+                                    logging.info("El servidor respondio: "+resultado)
+                                    return {
+                                        "enviado": True,
+                                        "accion": resultado
+                                    }
                     if i == 20:
                         variables_globales.conexion_servidor = "NO"
                         return {
                             "enviado": False
                         }
+                    i = i+1
             else:
                 print("\x1b[1;33m"+"#############################################")
                 print("\x1b[1;33m"+"No hay suficiante señal celular para enviar datos, pero se hara otro intento en 10 segundos")
@@ -333,6 +389,9 @@ class Principal_Modem:
         except Exception as e:
             print("\x1b[1;31;47m"+"comand.py, linea 238: "+str(e)+'\033[0;m')
             logging.info(e)
+            return {
+                "enviado": False
+            }
 
     def cerrar_socket(self):
         try:
@@ -455,7 +514,6 @@ class Principal_Modem:
         ######   Ernesto   ########
         ###########################
         try:
-
             print("\x1b[1;32m"+"#####################################")
             ser.readline()
             ser.readline()
@@ -463,50 +521,60 @@ class Principal_Modem:
             ser.flushOutput()
             comando = "AT+CPIN?\r\n"
             ser.write(comando.encode())
-            print(ser.readline())
-            time.sleep(5)
-            respuesta = ser.readline()
-            if 'READY' in respuesta.decode():
-                ser.flushInput()
-                ser.flushOutput()
-            else:
-                print("\x1b[1;33m"+"No se pudo inicializar AT+CPIN")
-                time.sleep(2)
-                #self.reiniciar_SIM()
+            i = 0
+            while True:    
+                respuesta = ser.readline()
+                print(respuesta.decode())
+                if 'READY' in respuesta.decode() or 'OK' in respuesta.decode():
+                    ser.flushInput()
+                    ser.flushOutput()
+                    break
+                elif i == 5 or 'ERROR' in respuesta.decode():
+                    print("\x1b[1;33m"+"No se pudo inicializar AT+CPIN")
+                    time.sleep(1)
+                    break
+                i = i + 1
+                time.sleep(.5)
             print("\x1b[1;32m"+"#####################################\n")
-
-            ser.flushInput()
-            ser.flushOutput()
+            
             comando = "AT+CREG?\r\n"
             ser.readline()
             ser.write(comando.encode())
-            print(ser.readline())
-            time.sleep(5)
-            respuesta = ser.readline()
-            if ',1' in respuesta.decode() or ',5' in respuesta.decode():
-                ser.flushInput()
-                ser.flushOutput()
-            else:
-                print("No se pudo inicializar AT+CREG?")
-                time.sleep(2)
-                #self.reiniciar_SIM()
+            i = 0
+            while True:    
+                respuesta = ser.readline()
+                print(respuesta.decode())
+                if ',1' in respuesta.decode() or ',5' in respuesta.decode() or 'OK' in respuesta.decode():
+                    ser.flushInput()
+                    ser.flushOutput()
+                    break
+                elif i == 5 or 'ERROR' in respuesta.decode():
+                    print("No se pudo inicializar AT+CREG?")
+                    time.sleep(.5)
+                    break
+                i = i + 1
+                time.sleep(1)
             print("\x1b[1;32m"+"#####################################\n")
-
+            
             ser.flushInput()
             ser.flushOutput()
             comando = "AT+CGREG?\r\n"
             ser.readline()
             ser.write(comando.encode())
-            print(ser.readline())
-            time.sleep(5)
-            respuesta = ser.readline()
-            if ',1' in respuesta.decode() or ',5' in respuesta.decode():
-                ser.flushInput()
-                ser.flushOutput()
-            else:
-                print("\x1b[1;33m"+"No se pudo inicializar AT+CGREG?")
-                time.sleep(2)
-                #self.reiniciar_SIM()
+            i = 0
+            while True:    
+                respuesta = ser.readline()
+                print(respuesta.decode())
+                if ',1' in respuesta.decode() or ',5' in respuesta.decode() or 'OK' in respuesta.decode():
+                    ser.flushInput()
+                    ser.flushOutput()
+                    break
+                elif i == 5 or 'ERROR' in respuesta.decode():
+                    print("\x1b[1;33m"+"No se pudo inicializar AT+CGREG?")
+                    time.sleep(.5)
+                    break
+                i = i + 1
+                time.sleep(1)
             print("\x1b[1;32m"+"#####################################\n")
 
             ser.flushInput()
@@ -514,34 +582,41 @@ class Principal_Modem:
             comando = "AT+QICSGP=1,1,\"internet.itelcel.com\",\"\",\"\",1\r\n"
             ser.readline()
             ser.write(comando.encode())
-            print(ser.readline())
-            time.sleep(5)
-            respuesta = ser.readline()
-            if 'OK' in respuesta.decode():
-                ser.flushInput()
-                ser.flushOutput()
-            else:
-                print("No se pudo inicializar AT+QICSGP")
-                time.sleep(2)
-                #self.reiniciar_SIM()
-            print("#####################################\n")
+            i = 0
+            while True:    
+                respuesta = ser.readline()
+                print(respuesta.decode())
+                if 'OK' in respuesta.decode():
+                    ser.flushInput()
+                    ser.flushOutput()
+                    break
+                elif i == 10 or 'ERROR' in respuesta.decode():
+                    print("\x1b[1;33m"+"No se pudo inicializar AT+QICSGP")
+                    time.sleep(1)
+                    break
+                i = i + 1
+                time.sleep(1)
+            print("\x1b[1;32m"+"#####################################\n")
 
             ser.flushInput()
             ser.flushOutput()
             comando = "AT+QIACT=1\r\n"
             ser.readline()
             ser.write(comando.encode())
-            print(ser.readline())
-            time.sleep(8)
-            ser.readline()
-            respuesta = ser.readline()
-            if 'OK' in respuesta.decode():
-                ser.flushInput()
-                ser.flushOutput()
-            else:
-                print("\x1b[1;33m"+"No se pudo inicializar AT+QIACT=1")
-                time.sleep(2)
-                #self.reiniciar_SIM()
+            i = 0
+            while True:
+                respuesta = ser.readline()
+                print(respuesta.decode())
+                if 'OK' in respuesta.decode():
+                    ser.flushInput()
+                    ser.flushOutput()
+                    break
+                elif i == 10 or 'ERROR' in respuesta.decode():
+                    print("\x1b[1;33m"+"No se pudo inicializar AT+QIACT=1")
+                    time.sleep(1)
+                    break
+                i = i + 1
+                time.sleep(1)
             print("\x1b[1;32m"+"#####################################")
         except Exception as e:
             print("\x1b[1;31;47m"+"FTP.py, linea 171, Error al inicializar SIM: "+str(e)+'\033[0;m')

@@ -319,7 +319,7 @@ font: 87 48pt &quot;Arial Black&quot;;</string>
   <widget class="QLabel" name="label_6">
    <property name="geometry">
     <rect>
-     <x>80</x>
+     <x>60</x>
      <y>132</y>
      <width>221</width>
      <height>211</height>
@@ -565,6 +565,25 @@ font: 87 48pt &quot;Arial Black&quot;;</string>
    </property>
    <property name="modelColumn">
     <number>0</number>
+   </property>
+  </widget>
+  <widget class="QLabel" name="lbl_name_operador">
+   <property name="geometry">
+    <rect>
+     <x>10</x>
+     <y>340</y>
+     <width>341</width>
+     <height>51</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">font: 75 16pt &quot;Arial&quot;;</string>
+   </property>
+   <property name="text">
+    <string>ERNESTOLOMARNESTOLOMARRR</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignCenter</set>
    </property>
   </widget>
  </widget>

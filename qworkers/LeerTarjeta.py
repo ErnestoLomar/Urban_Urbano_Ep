@@ -23,7 +23,7 @@ from escpos.printer import Usb
 from matrices_tarifarias import obtener_destino_de_servicios_directos, obtener_destino_de_transbordos
 from emergentes import VentanaEmergente
 from ventas_queries import insertar_item_venta, obtener_ultimo_folio_de_item_venta
-from queries import obtener_datos_aforo
+from queries import obtener_datos_aforo, insertar_estadisticas_boletera
 from tickets_usados import insertar_ticket_usado, verificar_ticket_completo, verificar_ticket
 import variables_globales as vg
 
@@ -98,6 +98,14 @@ class LeerTarjetaWorker(QObject):
                     csn = self.lib.ev2IsPresent().decode(encoding="utf8", errors='ignore')
                     time.sleep(0.01)
                     if csn != "":
+                        # Procedemos a obtener la fecha de la boletera
+                        fecha = strftime('%Y/%m/%d').replace('/', '')[2:]
+
+                        # Procedemos a obtener la hora de la boletera
+                        fecha_actual = str(subprocess.run("date", stdout=subprocess.PIPE, shell=True))
+                        indice = fecha_actual.find(":")
+                        hora = str(fecha_actual[(int(indice) - 2):(int(indice) + 6)]).replace(":","")
+                        
                         try:
                             tipo = str(self.lib.tipoTiscEV2().decode(encoding="utf8", errors='ignore')[0:2])
                             if tipo == "KI":
@@ -109,10 +117,10 @@ class LeerTarjetaWorker(QObject):
                                 # Verificamos que el dato de la vigencia de la tarjeta sea correcto.
                                 if len(vigenciaTarjeta) == 12 and int(vigenciaTarjeta[:2]) >= 22:
                                     now = datetime.now()
-                                    vigenciaActual = f'{str(now.date())[2:].replace("-","")}'
+                                    vigenciaActual = f'{str(now.strftime("%Y-%m-%d %H:%M:%S"))[2:].replace(" ","").replace("-","").replace(":","")}'
                                     print("Fecha actual: "+vigenciaActual)
-                                    print("Fecha vigencia tarjeta: "+vigenciaTarjeta[:6])
-                                    if vigenciaActual <= vigenciaTarjeta[:6]:
+                                    print("Fecha vigencia tarjeta: "+vigenciaTarjeta)
+                                    if vigenciaActual <= vigenciaTarjeta:
                                         print("Tarjeta vigente")
                                         csn = self.lib.ev2IsPresent().decode(encoding="utf8", errors='ignore')
                                         time.sleep(0.01)
@@ -154,6 +162,7 @@ class LeerTarjetaWorker(QObject):
                                             time.sleep(2)
                                             GUI.close()
                                     else:
+                                        insertar_estadisticas_boletera(str(self.idUnidad), fecha, hora, "SV", f"{csn}")
                                         GUI = VentanaEmergente("FUERADEVIGENCIA", "")
                                         GUI.show()
                                         for i in range(5):
@@ -164,6 +173,7 @@ class LeerTarjetaWorker(QObject):
                                         time.sleep(2)
                                         GUI.close()
                                 else:
+                                    insertar_estadisticas_boletera(str(self.idUnidad), fecha, hora, "TI", f"{csn},{vigenciaTarjeta}")
                                     GUI = VentanaEmergente("TARJETAINVALIDA", "")
                                     GUI.show()
                                     for i in range(5):
@@ -174,6 +184,7 @@ class LeerTarjetaWorker(QObject):
                                     time.sleep(2)
                                     GUI.close()
                             else:
+                                insertar_estadisticas_boletera(str(self.idUnidad), fecha, hora, "TD", f"{csn},{tipo}")
                                 GUI = VentanaEmergente("TARJETAINVALIDA", "")
                                 GUI.show()
                                 for i in range(5):

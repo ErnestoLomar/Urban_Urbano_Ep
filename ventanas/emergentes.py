@@ -4,12 +4,13 @@ from PyQt5.QtGui import *
 from PyQt5.QtWidgets import *
 
 class VentanaEmergente(QWidget):
-    def __init__(self, tipo_imagen, parametro):
+    def __init__(self, tipo_imagen, parametro, timer=None):
         super().__init__()
         # cargamos el archivo de ui
         self.setGeometry(20, 25, 761, 411)
         self.setWindowFlags(Qt.FramelessWindowHint)
         uic.loadUi("/home/pi/Urban_Urbano/ui/emergentes.ui", self)
+        self.timer = timer
         try:
             if tipo_imagen == "ACEPTADO":
                 self.label_fondo.setPixmap(QPixmap("/home/pi/Urban_Urbano/Imagenes/Aceptado.png"))
@@ -41,6 +42,16 @@ class VentanaEmergente(QWidget):
             elif tipo_imagen == "FUERADEVIGENCIA":
                 self.label_fondo.setPixmap(QPixmap("/home/pi/Urban_Urbano/Imagenes/fuera_de_vigencia.jpg"))
                 self.label_texto.setText(str(parametro))
+            elif tipo_imagen == "VOID":
+                self.label_fondo.setPixmap(QPixmap("/home/pi/Urban_Urbano/Imagenes/nocorte.jpg"))
+                self.label_texto.setText(str(parametro))
+                
+            if self.timer != None:
+                print("Timer: ", self.timer)
+                self.timer = QTimer(self)
+                self.timer.timeout.connect(self.close)
+                self.timer.start(5000)
+                
         except Exception as e:
             self.label_fondo.setPixmap(QPixmap("/home/pi/Urban_Urbano/Imagenes/no.png"))
             self.label_texto.setText("")

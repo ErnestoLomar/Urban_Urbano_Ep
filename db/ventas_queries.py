@@ -140,6 +140,23 @@ def obtener_total_de_ventas_por_folioviaje_y_fecha(folio_viaje,fecha):
     conexion.close()
     return resultado
 
+def obtener_total_de_efectivo_por_folioviaje(folio_viaje):
+    conexion = sqlite3.connect(URI)
+    cursor = conexion.cursor()
+
+    # Selecciona la suma de los costos para el folio_viaje y fecha dados
+    cursor.execute("SELECT SUM(costo) FROM item_venta WHERE folio_viaje = ?", (folio_viaje,))
+    
+    # Recupera el resultado (será un solo valor, la suma de costos)
+    resultado = cursor.fetchone()[0]
+
+    # Si no hay ventas para el folio_viaje y fecha dados, establece el resultado en 0
+    if resultado is None:
+        resultado = 0
+
+    conexion.close()
+    return resultado
+
 def obtener_total_de_ventas_por_folioviaje(folio_viaje):
     conexion = sqlite3.connect(URI)
     cursor = conexion.cursor()

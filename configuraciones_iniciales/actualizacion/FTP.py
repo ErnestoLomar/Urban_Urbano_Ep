@@ -39,11 +39,11 @@ except:
     
 #configuracion FTP Azure
 cuenta_azure = "\"account\""
-usuario_FTP_azure = "\"Abraham\""
-contra_FTP_azure = "\"May0admin2022*\""
-host_FTP_azure = "\"20.106.77.209\""
+usuario_FTP_azure = "\"Bolftp\""
+contra_FTP_azure = "\"vXW4N3$hp@\""
+host_FTP_azure = "\"44.224.205.143\""
 conf_conexion_FTP_azure = "AT+QFTPCFG="+cuenta_azure+","+usuario_FTP_azure+","+contra_FTP_azure
-conexion_FTP_azure = "AT+QFTPOPEN="+host_FTP_azure+",21"
+conexion_FTP_azure = "AT+QFTPOPEN="+host_FTP_azure+",22"
 
 #configuracion FTP webhost
 cuenta_webhost = "\"account\""
@@ -119,90 +119,99 @@ class Principal_Modem:
                 print("comand.py, linea 311: "+str(e))
 
         def inicializar_configuraciones_quectel(self):
+            ###########################
+            ######   Ernesto   ########
+            ###########################
             try:
-
-                print("#####################################")
+                print("\x1b[1;32m"+"#####################################")
                 ser.readline()
                 ser.readline()
                 ser.flushInput()
                 ser.flushOutput()
                 comando = "AT+CPIN?\r\n"
                 ser.write(comando.encode())
-                print(ser.readline())
-                time.sleep(1.5)
-                respuesta = ser.readline()
-                if 'READY' in respuesta.decode():
-                    print(respuesta)
-                    ser.flushInput()
-                    ser.flushOutput()
-                else:
-                    print("No se pudo inicializar AT+CPIN")
-                    print(respuesta)
-                    time.sleep(1)
-                    #self.reiniciar_SIM()
-                print("#####################################\n")
-
-                ser.flushInput()
-                ser.flushOutput()
+                i = 0
+                while True:    
+                    respuesta = ser.readline()
+                    print(respuesta.decode())
+                    if 'READY' in respuesta.decode() or 'OK' in respuesta.decode():
+                        ser.flushInput()
+                        ser.flushOutput()
+                        break
+                    elif i == 5 or 'ERROR' in respuesta.decode():
+                        print("\x1b[1;33m"+"No se pudo inicializar AT+CPIN")
+                        time.sleep(1)
+                        break
+                    i = i + 1
+                    time.sleep(.5)
+                print("\x1b[1;32m"+"#####################################\n")
+                
                 comando = "AT+CREG?\r\n"
                 ser.readline()
                 ser.write(comando.encode())
-                print(ser.readline())
-                time.sleep(1.5)
-                respuesta = ser.readline()
-                if ',1' in respuesta.decode() or ',5' in respuesta.decode():
-                    print(respuesta)
-                    ser.flushInput()
-                    ser.flushOutput()
-                else:
-                    print("No se pudo inicializar AT+CREG?")
-                    print(respuesta)
-                    time.sleep(1)
-                    #self.reiniciar_SIM()
-                print("#####################################\n")
-
+                i = 0
+                while True:    
+                    respuesta = ser.readline()
+                    print(respuesta.decode())
+                    if ',1' in respuesta.decode() or ',5' in respuesta.decode() or 'OK' in respuesta.decode():
+                        ser.flushInput()
+                        ser.flushOutput()
+                        break
+                    elif i == 5 or 'ERROR' in respuesta.decode():
+                        print("No se pudo inicializar AT+CREG?")
+                        time.sleep(1)
+                        break
+                    i = i + 1
+                    time.sleep(.5)
+                print("\x1b[1;32m"+"#####################################\n")
+                
                 ser.flushInput()
                 ser.flushOutput()
                 comando = "AT+CGREG?\r\n"
                 ser.readline()
                 ser.write(comando.encode())
-                print(ser.readline())
-                time.sleep(1.5)
-                respuesta = ser.readline()
-                if ',1' in respuesta.decode() or ',5' in respuesta.decode():
-                    print(respuesta)
-                    ser.flushInput()
-                    ser.flushOutput()
-                else:
-                    print("No se pudo inicializar AT+CGREG?")
-                    print(respuesta)
+                i = 0
+                while True:    
+                    respuesta = ser.readline()
+                    print(respuesta.decode())
+                    if ',1' in respuesta.decode() or ',5' in respuesta.decode() or 'OK' in respuesta.decode():
+                        ser.flushInput()
+                        ser.flushOutput()
+                        break
+                    elif i == 5 or 'ERROR' in respuesta.decode():
+                        print("\x1b[1;33m"+"No se pudo inicializar AT+CGREG?")
+                        time.sleep(.5)
+                        break
+                    i = i + 1
                     time.sleep(1)
-                    #self.reiniciar_SIM()
-                print("#####################################\n")
+                print("\x1b[1;32m"+"#####################################\n")
                 
                 ser.flushInput()
                 ser.flushOutput()
                 comando = "AT+CCID\r\n"
                 ser.readline()
                 ser.write(comando.encode())
-                print(ser.readline())
-                time.sleep(1.5)
-                respuesta = ser.readline()
-                if '+CCID' in respuesta.decode():
-                    print(respuesta)
-                    print(str(respuesta.decode()).replace("+CCID","").replace(" ",""))
-                    variables_globales.sim_id = str(respuesta.decode()).replace("+CCID","").replace(" ","").replace(":","")
+                i = 0
+                while True:    
                     respuesta = ser.readline()
-                    print(respuesta)
-                    respuesta = ser.readline()
-                    print(respuesta)
-                    ser.flushInput()
-                    ser.flushOutput()
-                else:
-                    print("No se pudo inicializar AT+CCID")
-                    print(respuesta)
-                    time.sleep(1)
-                    #self.reiniciar_SIM()
+                    print(respuesta.decode())
+                    if '+CCID:' in respuesta.decode():
+                        print(respuesta)
+                        print(str(respuesta.decode()).replace("+CCID","").replace(" ","").replace("\r\n","").replace(":","").replace("AT",""))
+                        variables_globales.sim_id = str(respuesta.decode()).replace("+CCID","").replace(" ","").replace(":","").replace("\r\n","")
+                        respuesta = ser.readline()
+                        print(respuesta)
+                        respuesta = ser.readline()
+                        print(respuesta)
+                        ser.flushInput()
+                        ser.flushOutput()
+                        break
+                    elif i == 10 or 'ERROR' in respuesta.decode():
+                        print("\x1b[1;33m"+"No se pudo inicializar AT+CGREG?")
+                        time.sleep(1)
+                        break
+                    i = i + 1
+                    time.sleep(.5)
                 print("#####################################\n")
 
                 ser.flushInput()
@@ -210,39 +219,42 @@ class Principal_Modem:
                 comando = "AT+QICSGP=1,1,\"internet.itelcel.com\",\"\",\"\",1\r\n"
                 ser.readline()
                 ser.write(comando.encode())
-                print(ser.readline())
-                time.sleep(1.5)
-                respuesta = ser.readline()
-                if 'OK' in respuesta.decode():
-                    print(respuesta)
-                    ser.flushInput()
-                    ser.flushOutput()
-                else:
-                    print("No se pudo inicializar AT+QICSGP")
-                    print(respuesta)
+                i = 0
+                while True:    
+                    respuesta = ser.readline()
+                    print(respuesta.decode())
+                    if 'OK' in respuesta.decode():
+                        ser.flushInput()
+                        ser.flushOutput()
+                        break
+                    elif i == 10 or 'ERROR' in respuesta.decode():
+                        print("\x1b[1;33m"+"No se pudo inicializar AT+QICSGP")
+                        time.sleep(1)
+                        break
+                    i = i + 1
                     time.sleep(1)
-                    #self.reiniciar_SIM()
-                print("#####################################\n")
+                print("\x1b[1;32m"+"#####################################\n")
 
                 ser.flushInput()
                 ser.flushOutput()
                 comando = "AT+QIACT=1\r\n"
                 ser.readline()
                 ser.write(comando.encode())
-                print(ser.readline())
-                time.sleep(2)
-                ser.readline()
-                respuesta = ser.readline()
-                if 'OK' in respuesta.decode():
-                    print(respuesta)
-                    ser.flushInput()
-                    ser.flushOutput()
-                else:
-                    print("No se pudo inicializar AT+QIACT=1")
-                    print(respuesta)
+                i = 0
+                while True:    
+                    respuesta = ser.readline()
+                    print(respuesta.decode())
+                    if 'OK' in respuesta.decode():
+                        ser.flushInput()
+                        ser.flushOutput()
+                        break
+                    elif i == 10 or 'ERROR' in respuesta.decode():
+                        print("\x1b[1;33m"+"No se pudo inicializar AT+QIACT=1")
+                        time.sleep(1)
+                        break
+                    i = i + 1
                     time.sleep(1)
-                    #self.reiniciar_SIM()
-                print("#####################################")
+                print("\x1b[1;32m"+"#####################################")
                 
                 print("Procedemos a iniciar sesión del GPS")
                 ser.flushInput()
@@ -279,61 +291,98 @@ class Principal_Modem:
         
         global verificar_memoria_UFS
         def verificar_memoria_UFS(version_matriz):
-            global id_Unidad
-            ser.flushInput()
-            ser.flushOutput()
-            print(ser.readline())
-            Aux = ser.readline()
-            print(Aux.decode())
-            Aux = ser.readline()
-            print(Aux.decode())
-            verificar_archivos = "AT+QFLST=\"*\"\r\n"
-            ser.write(verificar_archivos.encode())
-            print(ser.readline())
-            Aux = ser.readline()
-            print(Aux.decode())
-            if 'update.txt' in Aux.decode():
-                print("Ya existe el archivo update.txt en quectel, procede a eliminarse...")
-                eliminar_archivos = "AT+QFDEL=\"update.txt\"\r\n"
-                ser.write(eliminar_archivos.encode())
+            
+            try:
+                global id_Unidad
+                ser.flushInput()
+                ser.flushOutput()
                 print(ser.readline())
                 Aux = ser.readline()
                 print(Aux.decode())
                 Aux = ser.readline()
                 print(Aux.decode())
-            if f'{id_Unidad}' in Aux.decode():
-                print(f"Ya existe el archivo {id_Unidad}.txt en quectel, procede a elminarse...")
-                print(ser.readline())
-                Aux = ser.readline()
-                print(Aux.decode())
-                eliminar_archivos = f"AT+QFDEL=\"{id_Unidad}.txt\"\r\n"
-                ser.write(eliminar_archivos.encode())
-                print(ser.readline())
-                Aux = ser.readline()
-                print(Aux.decode())
-                Aux = ser.readline()
-                print(Aux.decode())
-            if f'{version_matriz}' in Aux.decode():
-                print(f"Ya existe el archivo {version_matriz}.txt en quectel, procede a eliminarse...")
-                eliminar_archivos = f"AT+QFDEL=\"{version_matriz}.txt\"\r\n"
-                ser.write(eliminar_archivos.encode())
-                print(ser.readline())
-                Aux = ser.readline()
-                print(Aux.decode())
-                Aux = ser.readline()
-                print(Aux.decode())
-            if os.path.exists('/home/pi/update.txt'):
-                print("Ya existe el archivo update.txt en raspebrry, procede a eliminarse...")
-                subprocess.run('rm -rf /home/pi/update.txt', shell=True)
-            if os.path.exists(f'/home/pi/{id_Unidad}'):
-                print(f"Ya existe el archivo {id_Unidad}.txt en raspberry, procede a eliminarse...")
-                subprocess.run(f'rm -rf /home/pi/{id_Unidad}', shell=True)
-            if os.path.exists('/home/pi/update/'):
-                print("Ya existe directorio update en raspebrry, procede a eliminarse...")
-                subprocess.run('rm -rf /home/pi/update/', shell=True)
-            ser.flushInput()
-            ser.flushOutput()
-            return True
+                
+                intentos_eliminar_ufs = 0
+                sin_archivos_por_eliminar = False
+                
+                while True:
+                    
+                    verificar_archivos = "AT+QFLST=\"*\"\r\n"
+                    ser.write(verificar_archivos.encode())
+                    
+                    time.sleep(.5)
+                    
+                    for i in range(3):
+                        
+                        if i >= 2:
+                            sin_archivos_por_eliminar = True
+                            
+                        time.sleep(.3)
+                        
+                        Aux = ser.readline()
+                        print(ser.readline())
+                        
+                        if 'update.txt' in Aux.decode():
+                            print("Ya existe el archivo update.txt en quectel, procede a eliminarse...")
+                            eliminar_archivos = "AT+QFDEL=\"update.txt\"\r\n"
+                            ser.write(eliminar_archivos.encode())
+                            print(ser.readline())
+                            Aux = ser.readline()
+                            print(Aux.decode())
+                            Aux = ser.readline()
+                            print(Aux.decode())
+                            sin_archivos_por_eliminar = False
+                        if f'{id_Unidad}' in Aux.decode():
+                            print(f"Ya existe el archivo {id_Unidad}.txt en quectel, procede a elminarse...")
+                            print(ser.readline())
+                            Aux = ser.readline()
+                            print(Aux.decode())
+                            eliminar_archivos = f"AT+QFDEL=\"{id_Unidad}.txt\"\r\n"
+                            ser.write(eliminar_archivos.encode())
+                            print(ser.readline())
+                            Aux = ser.readline()
+                            print(Aux.decode())
+                            Aux = ser.readline()
+                            print(Aux.decode())
+                            sin_archivos_por_eliminar = False
+                        if f'{version_matriz}' in Aux.decode():
+                            print(f"Ya existe el archivo {version_matriz}.txt en quectel, procede a eliminarse...")
+                            eliminar_archivos = f"AT+QFDEL=\"{version_matriz}.txt\"\r\n"
+                            ser.write(eliminar_archivos.encode())
+                            print(ser.readline())
+                            Aux = ser.readline()
+                            print(Aux.decode())
+                            Aux = ser.readline()
+                            print(Aux.decode())
+                            sin_archivos_por_eliminar = False
+                        
+                        
+                    intentos_eliminar_ufs += 1
+                    
+                    if intentos_eliminar_ufs >= 3 and not sin_archivos_por_eliminar:
+                        print("No se eliminaron todos los archivos correctamente...")
+                        break
+                    elif sin_archivos_por_eliminar:
+                        print("No hay archivos por eliminar")
+                        break
+
+                if os.path.exists('/home/pi/update.txt'):
+                    print("Ya existe el archivo update.txt en raspebrry, procede a eliminarse...")
+                    subprocess.run('rm -rf /home/pi/update.txt', shell=True)
+                if os.path.exists(f'/home/pi/{id_Unidad}'):
+                    print(f"Ya existe el archivo {id_Unidad}.txt en raspberry, procede a eliminarse...")
+                    subprocess.run(f'rm -rf /home/pi/{id_Unidad}', shell=True)
+                if os.path.exists('/home/pi/update/'):
+                    print("Ya existe directorio update en raspebrry, procede a eliminarse...")
+                    subprocess.run('rm -rf /home/pi/update/', shell=True)
+                    
+                ser.flushInput()
+                ser.flushOutput()
+                
+                return True
+            except Exception as e:
+                print("Fallo la verificacion de UFS")
+                return True
         
         global ConfigurarFTP  
         def ConfigurarFTP(servidor, tamanio,version_matriz):
@@ -373,6 +422,8 @@ class Principal_Modem:
                     ret = IniciarSesionFTP("web", tamanio)
                     return ret
                 elif servidor == "azure":
+                    
+                    # Se empiezan a hacer las configuraciones de la conexion FTP con Azure
                     cone=conf_conexion_FTP_azure+"\r\n"
                     print("esto es cone "+cone)
                     ser.write(cone.encode())
@@ -508,7 +559,7 @@ class Principal_Modem:
                 global id_Unidad,nombre,ubicacion,version_MT,tipo
                 if version_MT == False:
                     nombre = id_Unidad
-                    ubicacion = "/Actualizaciones/"
+                    ubicacion = "/Actualizaciones/Software/"
                     tipo = "Completo"
                 else:
                     nombre = str(version_MT)
@@ -541,6 +592,10 @@ class Principal_Modem:
                         Aux = ser.readline()
                         print(Aux.decode())
                         if Aux == "+QFTPGET: 0,0":
+                            print("Ha ocurrido un error")
+                            Reintentar = "True"
+                            break
+                        if "ERROR" in str(Aux) or "605" in str(Aux) or "625" in str(Aux):
                             print("Ha ocurrido un error")
                             Reintentar = "True"
                             break
@@ -643,8 +698,9 @@ class Principal_Modem:
                     time.sleep(1)
                     print("Descargando archivo de quectel...")
                     eux = ser.readlines()
-                    print("esto es el archivo: ")
-                    print(eux)
+                    #print("esto es el archivo: ")
+                    #print(eux)
+                    print("Ya se descargo el archivo")
                     todo = ""
 
                     time.sleep(5)
@@ -728,7 +784,7 @@ class Principal_Modem:
                         if len(str(tamanio_del_archivo)) > 6:
                             print(">>>>>> El tamaño del archivo txt en MBytes es: "+str(int(tamanio_del_archivo)/1024/1024))
 
-                        if(tamanio + 3 != tamanio_del_archivo):
+                        if(int(tamanio) + 3 != tamanio_del_archivo):
                             print(f"El tamaño de los archivos no coinciden")
                             if tamanio > tamanio_del_archivo:
                                 print(f"El archivo descargado es menor por {tamanio - tamanio_del_archivo} Bytes")
@@ -783,12 +839,13 @@ class Principal_Modem:
 
                     #-------------//////
                     print("Descomprimiendo...")
+                    #Verificamos en que ubicacion 
                     subprocess.run('pwd', shell=True)
                     subprocess.run('rm -rf update.txt', shell=True)
                     subprocess.run(f'rm -rf {nombre}.txt', shell=True)
                     subprocess.run("mv -f /home/pi/update.zip /home/pi/actualizacion/",shell=True)
                     if os.path.exists("/home/pi/update/"):
-                                    subprocess.run('rm -rf /home/pi/update/', shell=True)
+                        subprocess.run('rm -rf /home/pi/update/', shell=True)
                     subprocess.run("unzip -o /home/pi/actualizacion/update.zip",shell=True)
                     time.sleep(5)
                     print(".zip descomprimido")

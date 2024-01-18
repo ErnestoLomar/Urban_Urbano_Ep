@@ -33,6 +33,8 @@ except Exception as e:
     print("No se pudo inicializar el ventilador: "+str(e))
 
 class Rutas(QWidget):
+    
+    cerrar_servicios_signal = pyqtSignal()
 
     def __init__(self, turno: str, servicio_info,close_signal, close_signal_pasaje):
         super().__init__()
@@ -42,6 +44,7 @@ class Rutas(QWidget):
             #Creamos nuestras variables para la ventana servicios
             self.close_signal = close_signal
             self.close_signal_pasaje = close_signal_pasaje
+            self.cerrar_servicios_signal.connect(self.cerrar_por_no_tener_viaje)
             self.servicio_info = servicio_info.split(" - ")
             self.origen_de_servicio = obtener_origen_por_numero_de_servicio(self.servicio_info[0])
             self.ruta = self.servicio_info[0] + "-" + self.servicio_info[1] + "-" + self.servicio_info[2]
@@ -173,7 +176,63 @@ class Rutas(QWidget):
         except Exception as e:
             print("Error al cerrar la ventana de servicios: "+str(e))
             logging.info(e)
-
+            
+    def cerrar_por_no_tener_viaje(self):
+        try:
+            
+            variables_globales.detectando_geocercas_hilo = False
+            self.geocercas = None
+            self.nombres_geocercas_servicios = None
+            self.nombres_geocercas_transbordos = None
+            variables_globales.geocerca = "0,''"
+            self.settings.setValue('geocerca', "0,''")
+            self.settings.setValue("geocerca_desactivada", "")
+            self.settings.setValue("indice_de_geocerca_desactivada", 0)
+            variables_globales.todos_los_servicios_activos = []
+            variables_globales.todos_los_transbordos_activos = []
+            
+            
+            variables_globales.folio_asignacion = 0
+            if variables_globales.folio_asignacion != 0:
+                print*("El folio de asignacion no se reinicia")
+                logging.info("El folio de asignacion no se reinicia")
+                variables_globales.folio_asignacion = 0
+            self.settings.setValue('origen_actual', "")
+            self.settings.setValue('folio_de_viaje', "")
+            self.settings.setValue('pension', "")
+            self.settings.setValue('turno', "")
+            self.settings.setValue('vuelta', 1)
+            self.settings.setValue('info_estudiantes', "0,0.0")
+            self.settings.setValue('info_normales', "0,0.0")
+            self.settings.setValue('info_chicos', "0,0.0")
+            self.settings.setValue('info_ad_mayores', "0,0.0")
+            self.settings.setValue('reiniciar_folios', 1)
+            self.settings.setValue('total_a_liquidar', "0.0")
+            self.settings.setValue('total_de_folios', 0)
+            self.settings.setValue('csn_chofer_dos', "")
+            
+            
+            variables_globales.ventana_actual = VentanaActual.CHOFER
+            self.settings.setValue('servicio', "")
+            self.settings.setValue('ventana_actual', "")
+            self.settings.setValue('csn_chofer', "")
+            variables_globales.csn_chofer = ""
+            variables_globales.numero_de_operador_inicio = ""
+            variables_globales.numero_de_operador_final = ""
+            variables_globales.nombre_de_operador_inicio = ""
+            variables_globales.nombre_de_operador_final = ""
+            self.settings.setValue('numero_de_operador_inicio', "")
+            self.settings.setValue('numero_de_operador_final', "")
+            self.settings.setValue('nombre_de_operador_inicio', "")
+            self.settings.setValue('nombre_de_operador_final', "")
+            
+            GPIO.output(33, False)
+            
+            self.close()
+        except Exception as e:
+            print("Error al cerrar la ventana de servicios: "+str(e))
+            logging.info(e)
+            
     #Toma una lista de servicios de la BD y crea una lista de servicios en la GUI.
     def cargar_servicios(self, lista):
         try:
@@ -522,7 +581,7 @@ class Rutas(QWidget):
                 precio_preferente = float(servicio[4])
                 id_tabla_servicio = servicio[0]
                 tramo = str(str(str(servicio[1]).split("_")[0]).replace(" ","") + "-" + str(str(servicio[2]).split("_")[0]).replace(" ",""))
-                ventana = VentanaPasaje(precio, self.de, nombre, precio_preferente, self.close_signal_pasaje, f"SER,{servicio}", id_tabla_servicio, self.ruta, tramo)
+                ventana = VentanaPasaje(precio, self.de, nombre, precio_preferente, self.close_signal_pasaje, f"SER,{servicio}", id_tabla_servicio, self.ruta, tramo, self.cerrar_servicios_signal)
                 ventana.setGeometry(0, 0, 800, 440)
                 ventana.setWindowFlags(Qt.FramelessWindowHint)
                 ventana.show()
@@ -533,7 +592,7 @@ class Rutas(QWidget):
                 precio_preferente = float(transbordo[4])
                 id_tabla_transbordo = transbordo[0]
                 tramo = str(str(str(transbordo[1]).split("_")[0]).replace(" ","") + "-" + str(str(transbordo[2]).split("_")[0]).replace(" ",""))
-                ventana = VentanaPasaje(precio, self.de, nombre, precio_preferente, self.close_signal_pasaje, f"TRA,{transbordo}", id_tabla_transbordo, self.ruta, tramo)
+                ventana = VentanaPasaje(precio, self.de, nombre, precio_preferente, self.close_signal_pasaje, f"TRA,{transbordo}", id_tabla_transbordo, self.ruta, tramo, self.cerrar_servicios_signal)
                 ventana.setGeometry(0, 0, 800, 440)
                 ventana.setWindowFlags(Qt.FramelessWindowHint)
                 ventana.show()

@@ -4,6 +4,40 @@ Software de validador para camiones de transporte urbano para la empresa Urban d
 **Autor: Ernesto Lomar**
 
 Linea cronológica:
+- v2.44:
+  - Se corrigió bug de la actualización parcial de archivos en FTP
+  - Se añadió la base de datos asignación.db para que no ocurriera un bug en la creación de trama 4.
+- v2.43:
+  - Se mejoro la eliminación de archivos UFS.
+  - Se corrigió bug de bucle infinito en "Descargando archivo de azure".
+- v2.32:
+  - Que todas las tramas tengan [ en el inicio de la trama y ] en el final de la trama.
+  - Que las tramas 2, 4 y 5 respondan con el checksum calculado del contenido de la trama.
+  - Que las tramas 2, 4 y 5 verifiquen el checksum recibido del socket con el que se calculo en la boletera.
+  - Se quito la "D" de la función "realizar_accion".
+  - La boletera ahora solo toma como respuestas correctas del servidor las que contienen un SKT en la respuesta.
+  - La boletera ahora puede manejar estos errores ['ErIn', 'TrEm', 'ErTr', 'EmEr'] y vuelve a enviar la trama.
+  - La boletera ahora también toma en cuenta la hora de la tarjeta para validar la vigencia.
+  - Ahora la librería .so detecta cuando no se tiene conexión con el dispositivo NFC e intenta rehacer la conexión.
+  - La boletera ahora tiene la posibilidad de enviar tramas informativas acerca de mal uso de tarjetas y cuando se hizo un intento fallido de impresión de ticket.
+  - La boletera no se podrá actualizar por FTP en pleno viaje.
+  - La boletera no puede iniciar un viaje si existe uno en curso.
+  - Se acotaron los tiempos de la maquina de estado.
+  - Se quitaron los saltos de linea (\n) de la trama 9 (IDSIM y MAC).
+  - Se incluyo un candado en la función "mandar_datos" para que la basura que encuentra en el serial la pase de largo.
+  - Cuando se detecta que un viaje se esta tratando de iniciar y ya existe uno actual, muestra una ventana emergente avisando sobre este suceso.
+  - Aparece una ventana emergente de aviso cuando no se puede imprimir un ticket.
+  - Cuando se trata de generar una venta cuando no existe un viaje iniciado, manda un aviso por pantalla y cierra toda la sesión hasta regresar a la pantalla de camiones.
+  - La trama 4 incluye el monto total de las ventas realizadas en el viaje.
+  - Cuando la boletera no puede conectarse a su socket asignado, intenta conectarse al socket siguiente (si tiene el socket 8201, se intenta conectar al 8202, si tiene el 8210 intenta al 8201, etc). Y cuando ya pasaron varios intentos y sigue sin consolidar los datos en el servidor regresa a su socket asignado desde un principio y repite lo mismo si es que sigue sin consolidar el envió de datos.
+  - Se agregaron candados de seguridad para los datos de la trama 2, 4 y 5.
+  - Se modifico el tiempo de arranque de la boletera de 20s a 18s.
+  - La boletera ahora puede recibir una instrucción de CMD desde el servidor y ejecutarla.
+  - Se implemento una nueva base de datos llamada horarios.
+  - Ahora la boletera ya puede enviar tramas ACT cada media hora en el transcurso de todo el día.
+  - Se implemento la eliminación automática de tramas 9 que tienes 15 días o mas almacenadas en la DB.
+  - Se cambio el folio (contador) de los folio de viaje a 01.
+  - Se modifico la comunicación del FTP a AWS.
 - v1.31:
   - Agregando la opción de que cuando inicie el sistema o se actualice se le otorguen permisos de administrador a todos los archivos.
   - Se agregaron 3 intentos al momento de actualizar el sistema.
