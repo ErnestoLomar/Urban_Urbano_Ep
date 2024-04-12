@@ -19,7 +19,7 @@ sys.path.insert(1, '/home/pi/Urban_Urbano/db')
 from asignaciones_queries import seleccionar_auto_asignaciones_antiguas, eliminar_auto_asignaciones_antiguas, seleccionar_fin_de_viaje_antiguos, eliminar_fin_de_viaje_antiguos
 from tickets_usados import seleccionar_tickets_antiguos, eliminar_tickets_antiguos
 from ventas_queries import seleccionar_ventas_antiguas, eliminar_ventas_antiguas
-from queries import insertar_estadisticas_boletera, crear_tablas, obtener_datos_aforo, seleccionar_estadistias_antiguas, eliminar_estadisticas_antiguas
+from queries import insertar_estadisticas_boletera, crear_tablas, obtener_datos_aforo, seleccionar_estadistias_antiguas, eliminar_estadisticas_antiguas, actualizar_socket
 from horariosDB import obtener_estado_de_todas_las_horas_no_hechas, actualizar_estado_hora_check_hecho, actualizar_estado_hora_por_defecto
 import variables_globales as vg
 from eeprom_num_serie import cargar_num_serie
@@ -326,6 +326,29 @@ class QuectelWorker(QObject):
                 
                 print("Se terminó de verificar las bases de datos")
                 print("################################################")
+                
+                posibles_sockets = {
+                    '1': '8201',
+                    '2': '8202',
+                    '3': '8203',
+                    '4': '8204',
+                    '5': '8205',
+                    '6': '8206',
+                    '7': '8207',
+                    '8': '8208',
+                    '9': '8209',
+                    '0': '8210'
+                }
+                
+                ultimo_digito_unidad = str(datos_de_la_unidad[1])[-1:]
+                
+                socket_asignado = posibles_sockets[ultimo_digito_unidad]
+                
+                print("El socket asignado es: ", socket_asignado)
+                
+                actualizar_socket(socket_asignado)
+                
+                
             except Exception as e:
                 print("Ocurrió un error al verificar las bases de datos: ", e)
                 time.sleep(0.10)
