@@ -4,6 +4,8 @@ Software de validador para camiones de transporte urbano para la empresa Urban d
 **Autor: Ernesto Lomar**
 
 Linea cronológica:
+- v2.46:
+  - Se agrego la nueva matriz tarifaría.
 - v2.45:
   - Se añadió la funcionalidad de que la boletera pueda escoger el socket que le corresponde por el número de unidad que tiene asignado.
 - v2.44:
