@@ -4,6 +4,8 @@ Software de validador para camiones de transporte urbano para la empresa Urban d
 **Autor: Ernesto Lomar**
 
 Linea cronológica:
+- v2.47:
+  - Se modifico la librería .so para corregir en error (nil) de los tags.
 - v2.46:
   - Se agrego la nueva matriz tarifaría.
 - v2.45:
