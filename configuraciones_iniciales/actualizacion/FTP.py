@@ -319,8 +319,9 @@ class Principal_Modem:
                             
                         time.sleep(.3)
                         
+                        print("Archivos en quectel:-----------------------------")
                         Aux = ser.readline()
-                        print(ser.readline())
+                        print(Aux)
                         
                         if 'update.txt' in Aux.decode():
                             print("Ya existe el archivo update.txt en quectel, procede a eliminarse...")
@@ -575,14 +576,18 @@ class Principal_Modem:
                     print(f"comando:{comando}")
 
                     ser.write(comando.encode())
-                    print(ser.readline())
-                    Aux = ser.readline()
-                    print("salio 1 "+Aux.decode())
+                    flush = ser.readline()
+                    print("Flush -------------")
+                    while flush:
+                        print(flush)
+                        flush = ser.readline()
+                    print("-----------")
                     time.sleep(5)
                     
                     archivo = f"\"{nombre}.txt\""
                     complemento= f"\"UFS:{nombre}.txt\""
                     comando="AT+QFTPGET="+archivo+","+complemento+"\r\n"
+                    print(f"comando:{comando}")
                     ser.write(comando.encode())
                     time.sleep(5)
                     print(ser.readline())
@@ -590,12 +595,12 @@ class Principal_Modem:
                     while True:
                         print("descargando archivo de azure...")
                         Aux = ser.readline()
-                        print(Aux.decode())
+                        print("descarga: ["+Aux.decode() + "]")
                         if Aux == "+QFTPGET: 0,0":
                             print("Ha ocurrido un error")
                             Reintentar = "True"
                             break
-                        if "ERROR" in str(Aux) or "605" in str(Aux) or "625" in str(Aux):
+                        if "ERROR" in str(Aux) or "605" in str(Aux) or "625" in str(Aux) or "613" in str(Aux):
                             print("Ha ocurrido un error")
                             Reintentar = "True"
                             break
@@ -618,6 +623,7 @@ class Principal_Modem:
                                     break
                             else:
                                 print("Ha ocurrido un error, reintentando...")
+                                print(f"Aux1 = {Aux1}")
                                 Reintentar = "True"
                                 break
                         

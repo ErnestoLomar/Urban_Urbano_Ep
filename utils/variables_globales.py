@@ -6,7 +6,7 @@
 # Script para almacenar las variables globales que se esten utilizando en el programa
 ##########################################
 
-version_del_software = "EL.v2.49Ep"
+version_del_software = "EL.v2.51"
 banderaServicio=False
 longitud = 0
 latitud = 0

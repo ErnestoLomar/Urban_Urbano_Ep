@@ -4,6 +4,12 @@ Software de validador para camiones de transporte urbano para la empresa Urban d
 **Autor: Ernesto Lomar**
 
 Linea cronológica:
+- v2.51Ep:
+  - Se implemento la nueva matriz tarifaria
+  - Hubo cambios en las geocercas.
+  - Se aniadieron nuevos servicios a la base de datos de servicios_pensiones.
+- v2.50:
+  - Se mejoro el FTP por Alejandro.
 - v2.49:
   - Se corrigió la matriz tarifaría en el 109 de Km20 a Aviación de $16 a $14.
 - v2.48:
