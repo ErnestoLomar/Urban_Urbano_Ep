@@ -10,6 +10,7 @@
 #Librerías externas
 import sys
 import os
+from RPi import GPIO
 from PyQt5 import uic
 from PyQt5.QtCore import *
 from PyQt5.QtGui import *
@@ -60,6 +61,15 @@ except Exception as e:
     logging.info("Error al instanciar el objeto de la clase Principal_Modem: " + str(e))
     print("Error al instanciar el objeto de la clase Principal_Modem: " + str(e))
 
+try:
+    # RSTO del PN532 -> GPIO27 (pin físico 13)
+    RSTPDN_PIN = 13
+    GPIO.setwarnings(False)
+    GPIO.setmode(GPIO.BOARD)
+    GPIO.setup(RSTPDN_PIN, GPIO.OUT, initial=GPIO.HIGH)
+except Exception as e:
+    print("Fallo en iniciar GPIOS")
+
 class Ventana(QWidget):
 
     def __init__(self):
@@ -95,6 +105,13 @@ class Ventana(QWidget):
             respuesta = cargar_num_serie()
             self.label_num_ser.setText(respuesta['state_num_serie'])
             self.label_num_ver.setText(respuesta['state_num_version'])
+
+            try:
+                print("Iniciando GPIO RSTPDN_PIN")
+                GPIO.output(RSTPDN_PIN, GPIO.HIGH)
+            except Exception as e:
+                print("Fallo en iniciar GPIO RSTPDN_PIN: ", e)
+                logging.info("Fallo en iniciar GPIO RSTPDN_PIN: ", e)
 
             self.inicializar()
             
